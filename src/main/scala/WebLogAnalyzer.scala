@@ -30,6 +30,13 @@ object WebLogAnalyzer {
     val sessionPerVisitor = visitorHits
       .groupByKey()
       .map { case (visitorId, hits) =>
+        /*
+         NOTE : This retrieve all the hits for a user into 1 node memory; which could potentially be dangerous (OOM)
+          The alternative to this are non-trivial and less clear, so for the test purpose I assumed this was good enough.
+          All the other steps will be based upon this assumption and using the Session object with every hits in memory.
+          Having more time to spend on this; I would probably have done more operation/work in Spark and less on node
+          memory; this would be one of the possible optimization.
+         */
         val timeSortedHits = hits.toSeq.sortBy(_.timestamp.getMillis)
 
         // Fold through the list of hits and create sub-lists (sessions) based on SessionDuration
@@ -63,7 +70,7 @@ object WebLogAnalyzer {
     val uniqueVisitCountSession = sessionPerVisitor
         .flatMap { case (_, sessions) => sessions.map(_.uniqueVisitedUrls.size) }
 
-    // For test-display purpose let's calculate the mean and the max of unique visits
+    // For test-display purpose just calculate the mean and the max of unique visits
     val averageUniqueVisitSession = uniqueVisitCountSession.mean()
     val maximumUniqueVisitSession = uniqueVisitCountSession.max()
 
